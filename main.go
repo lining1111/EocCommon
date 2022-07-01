@@ -88,7 +88,7 @@ func main() {
 		if err != nil {
 			fmt.Println("eoc open fail,err", err.Error())
 		} else {
-			if e.Run && e.State == eoc.Connect {
+			if e.State == eoc.Connect {
 				//发生登录请求
 				for e.State != eoc.Login {
 					err1 := e.SendLogin()
@@ -97,9 +97,10 @@ func main() {
 					}
 					time.Sleep(time.Duration(1) * time.Second) //10s sleep
 				}
-				//开启本地业务
-				e.StartLocalBusiness()
 			}
+
+			//开启本地业务
+			e.StartLocalBusiness()
 		}
 	}()
 
@@ -109,8 +110,6 @@ func main() {
 		fmt.Println("eoc keep thread")
 
 		e.BusinessKeep()
-
-
 	}()
 
 	wg.Wait()

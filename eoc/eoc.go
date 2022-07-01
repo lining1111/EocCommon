@@ -27,7 +27,6 @@ type Eoc struct {
 	Ip    string //eoc服务器ip
 	Port  int    //eoc服务器端口号
 	conn  *tls.Conn
-	Run   bool
 	State int //eoc连接状态
 
 	ServerPemFilePath string //"./server.pem"
@@ -55,25 +54,22 @@ func (e *Eoc) Open() error {
 	}
 
 	conn, err1 := tls.Dial("tcp", server, &tls.Config{
-		RootCAs: roots,
+		RootCAs:            roots,
 		InsecureSkipVerify: true,
 	})
 	if err1 != nil {
 		panic("failed to connect: " + err1.Error())
 	} else {
 		e.conn = conn
-		e.Run = true
+		e.State = Connect
 	}
 	fmt.Println("eoc tcp open")
-	e.State = Connect
-	return err
 
 	return nil
 }
 
 func (e *Eoc) Close() error {
 	e.conn.Close()
-	e.Run = false
 
 	return nil
 }
@@ -304,27 +300,32 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 
 func (e *Eoc) ThreadReceive() {
 	fmt.Println("eoc ThreadReceive")
-	for e.Run {
-		content := make([]byte, 1024*1024*2)
-		n, err := e.conn.Read(content)
-		if err != nil {
-			fmt.Println("eoc sock receive err:", err)
-			e.Run = false
-		}
-		fmt.Println("eoc receive:", string(content[:n]))
-		//根据×分割命令
-		rsps := strings.Split(string(content[:n]), "*")
-		//逐条进行解析执行
-		for k, v := range rsps {
-			fmt.Println("解析第", k, "条命令:", v)
-			e.ProcessRsp(v)
+	for true {
+		time.Sleep(time.Duration(1) * time.Second)
+		if e.State == Connect {
+			content := make([]byte, 1024*1024*2)
+			n, err := e.conn.Read(content)
+			if err != nil {
+				fmt.Println("eoc sock receive err:", err)
+				e.State = NotConnect
+			} else {
+				fmt.Println("eoc receive:", string(content[:n]))
+				//根据×分割命令
+				rsps := strings.Split(string(content[:n]), "*")
+				//逐条进行解析执行
+				for k, v := range rsps {
+					fmt.Println("解析第", k, "条命令:", v)
+					e.ProcessRsp(v)
+				}
+			}
 		}
 	}
 }
 
 func (e *Eoc) ThreadHeartBeat() {
 	fmt.Println("eoc ThreadHeartBeat")
-	for e.Run {
+	for true {
+
 		if e.State == Login {
 			//发送心跳
 			ori, err := common.SetHeartBeat()
@@ -348,7 +349,7 @@ func (e *Eoc) ThreadHeartBeat() {
 
 func (e *Eoc) ThreadSendState() {
 	fmt.Println("eoc ThreadSendState")
-	for e.Run {
+	for true {
 		if e.State == Login {
 			//发送状态上传
 			state := common.DataReqState{
@@ -376,9 +377,9 @@ func (e *Eoc) ThreadSendState() {
 }
 
 func (e *Eoc) StartLocalBusiness() {
-		go e.ThreadReceive()
-		go e.ThreadHeartBeat()
-		go e.ThreadSendState()
+	go e.ThreadReceive()
+	go e.ThreadHeartBeat()
+	go e.ThreadSendState()
 }
 
 func (e *Eoc) BusinessKeep() {
@@ -392,7 +393,7 @@ func (e *Eoc) BusinessKeep() {
 			if err != nil {
 				fmt.Println("eoc open fail,err", err.Error())
 			} else {
-				if e.Run && e.State == Connect {
+				if e.State == Connect {
 					//发生登录请求
 					for e.State != Login {
 						err1 := e.SendLogin()
@@ -401,8 +402,6 @@ func (e *Eoc) BusinessKeep() {
 						}
 						time.Sleep(time.Duration(1) * time.Second) //10s sleep
 					}
-					//开启本地业务
-					e.StartLocalBusiness()
 				}
 			}
 		}
