@@ -169,7 +169,7 @@ type IntersectionEntity struct {
 	YLength                 float64                       `json:"yLength" db:"yLength"`
 	LaneNumber              int                           `json:"laneNumber" db:"laneNumber"`
 	Latitude                string                        `json:"latitude" db:"latitude"`
-	longitude               string                        `json:"longitude" db:"longitude"`
+	Longitude               string                        `json:"longitude" db:"longitude"`
 	IntersectionBaseSetting IntersectionBaseSettingEntity `json:"intersectionBaseSetting" db:"intersectionBaseSetting"`
 }
 
@@ -302,7 +302,7 @@ func SetReqState(data DataReqState) ([]byte, error) {
 		req := FrameReq{
 			Guid:    uuid.New().String(),
 			Version: Version,
-			Code:    ReqHeartBeat,
+			Code:    ReqState,
 			Data:    string(dataStr)}
 		reqStr, err1 := json.Marshal(req)
 		if err1 != nil {

@@ -44,7 +44,7 @@ func main() {
 	flag.IntVar(&ServerPort, "port", 6526, "默认为6526,从数据库读取port，也可以自己设置")
 	flag.StringVar(&ServerPemFilePath, "pem", "./server.pem", "默认为./server.pem，从数据库读取ip，也可以自己设置")
 
-	flag.StringVar(&dbConfigPath, "dbConfigPath", "./eocConfigDB/eocConfig.db", "默认为./eocConfigDB/eocConfig.db，也可以自己设置")
+	flag.StringVar(&dbConfigPath, "dbConfigPath", "/home/nvidianx/bin/eocConfig.db", "默认为/home/nvidianx/bin/eocConfig.db，也可以自己设置")
 	flag.StringVar(&dbNetPath, "dbNetPath", "/home/nvidianx/bin/RoadsideParking.db", "默认为/home/nvidianx/bin/RoadsideParking.db，也可以自己设置")
 	flag.StringVar(&dbCLParkingPath, "dbCLParkingPath", "/home/nvidianx/bin/CLParking.db", "默认为/home/nvidianx/bin/CLParking.db，也可以自己设置")
 	flag.Parse()
@@ -58,11 +58,17 @@ func main() {
 	db.CLParkingDbPath = dbCLParkingPath
 
 	//打开数据库获取网络配置
-	db.OpenServerNetDB(dbNetPath)
+	err := db.OpenServerNetDB(dbNetPath)
+	if err != nil {
+		fmt.Println(err)
+	}
 	serverNet := db.ServerNet{}
 	if db.ServerNetDbIsOpen {
 
-		db.GetServerNet(serverNet)
+		err1 := db.GetServerNet(serverNet)
+		if err1 != nil {
+			fmt.Println(err1)
+		}
 	}
 
 	if ServerIp == "" {

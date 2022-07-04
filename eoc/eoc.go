@@ -58,31 +58,36 @@ func (e *Eoc) Open() error {
 		InsecureSkipVerify: true,
 	})
 	if err1 != nil {
-		panic("failed to connect: " + err1.Error())
+		fmt.Println("failed to connect: " + err1.Error())
 	} else {
 		e.conn = conn
 		e.State = Connect
+		fmt.Println("eoc tcp open")
 	}
-	fmt.Println("eoc tcp open")
 
 	return nil
 }
 
 func (e *Eoc) Close() error {
-	e.conn.Close()
+	if e.State != NotConnect {
+		err := e.conn.Close()
+		if err != nil {
+			fmt.Println("关闭失败")
+		}
+	}
 
 	return nil
 }
 
 func GetEquipNumber() (string, error) {
-	db, err := sqlx.Open("sqlite3", db.CLParkingDbPath)
+	dbSqlite, err := sqlx.Open("sqlite3", db.CLParkingDbPath)
 	if err != nil {
 		fmt.Println("sqlite3 open fail err", err)
 		return "0123456789", err
 	}
-	defer db.Close()
+	defer dbSqlite.Close()
 	sqlCmd := "select UName from  CL_ParkingArea"
-	row := db.QueryRowx(sqlCmd)
+	row := dbSqlite.QueryRowx(sqlCmd)
 	if row.Err() != nil {
 		return "0123456789", row.Err()
 	}
@@ -96,14 +101,14 @@ func GetEquipNumber() (string, error) {
 }
 
 func SetEquipNumber(equipNumber string) error {
-	db, err := sqlx.Open("sqlite3", db.CLParkingDbPath)
+	dbSqlite, err := sqlx.Open("sqlite3", db.CLParkingDbPath)
 	if err != nil {
 		fmt.Println("sqlite3 open fail err", err)
 		return err
 	}
-	defer db.Close()
+	defer dbSqlite.Close()
 	sqlCmd := "update CL_ParkingArea set UName ='%s'"
-	_, err1 := db.Exec(sqlCmd, equipNumber)
+	_, err1 := dbSqlite.Exec(sqlCmd, equipNumber)
 	if err1 != nil {
 		fmt.Printf(err1.Error())
 		return err1
@@ -162,11 +167,14 @@ func (e *Eoc) SendLogin() error {
 	equipNumber, _ := GetEquipNumber()
 	equipIp, _ := GetEquipIp()
 
-	db.OpenConfigDb(db.ConfigDbPath)
+	err := db.OpenConfigDb(db.ConfigDbPath)
+	if err != nil {
+		fmt.Println("打开数据库失败")
+	}
 	defer db.CloseConfigDb()
 	var dataVersion string
-	err := db.GetDataVersionInLoginInfo(&dataVersion)
-	if err != nil {
+	err1 := db.GetDataVersionInLoginInfo(&dataVersion)
+	if err1 != nil {
 		dataVersion = ""
 	}
 	login := common.DataReqLogin{
@@ -177,19 +185,19 @@ func (e *Eoc) SendLogin() error {
 		SoftVersion: common.Version,
 		DataVersion: dataVersion,
 	}
-	ori, err1 := common.SetReqLogin(login)
-	if err1 != nil {
-		fmt.Println("err:", err1.Error())
-		return err1
+	ori, err2 := common.SetReqLogin(login)
+	if err2 != nil {
+		fmt.Println("err:", err2.Error())
+		return err2
 	} else {
 		fmt.Println("原文:", string(ori))
 		//原文加×
 		plain := append(ori, '*')
 
-		_, err2 := e.conn.Write(plain)
-		if err2 != nil {
-			fmt.Println("login send fail:", err2.Error())
-			return err2
+		_, err3 := e.conn.Write(plain)
+		if err3 != nil {
+			fmt.Println("login send fail:", err3.Error())
+			return err3
 		}
 	}
 	return nil
@@ -210,7 +218,7 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 	case common.RspLogin:
 		fmt.Println("eoc 登录回复")
 		login := common.DataRspLogin{}
-		err1 := json.Unmarshal([]byte(frame.Data), login)
+		err1 := json.Unmarshal([]byte(frame.Data), &login)
 		if err1 != nil {
 			fmt.Println("json unmarshal err ", err1.Error())
 		}
@@ -225,7 +233,7 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 		fmt.Println("eoc 配置回复")
 		fmt.Println("eoc config rsp:", frame.Data)
 		config := common.DataRspConfig{}
-		err1 := json.Unmarshal([]byte(frame.Data), config)
+		err1 := json.Unmarshal([]byte(frame.Data), &config)
 		if err1 != nil {
 			fmt.Println("json unmarshal err ", err1.Error())
 		} else {
@@ -233,28 +241,32 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 			var message = ""
 			//将下发的配置进行本地存储
 			//1.先将dataVersion存到数据库
-			db.OpenConfigDb(db.ConfigDbPath)
-
-			err2 := db.SetDataVersionInLoginInfo(config.DataVersion)
+			err2 := db.OpenConfigDb(db.ConfigDbPath)
 			if err2 != nil {
+				fmt.Println("打开数据库失败")
 				message += err2.Error()
-			}
-			db.CloseConfigDb()
-			//2.将所需配置存到对应的数据库
-			//2.1 写入设备编码到数据库
-			err3 := SetEquipNumber(config.AssociatedEquips[0].EquipCode)
-			if err3 != nil {
-				message += err3.Error()
+			} else {
+				err3 := db.SetDataVersionInLoginInfo(config.DataVersion)
+				if err3 != nil {
+					message += err3.Error()
+				}
+				db.CloseConfigDb()
+				//2.将所需配置存到对应的数据库
+				//2.1 写入设备编码到数据库
+				err4 := SetEquipNumber(config.AssociatedEquips[0].EquipCode)
+				if err4 != nil {
+					message += err4.Error()
+				}
 			}
 			//2.2 将融合参量写入数据库
-			err4 := db.OpenConfigDb(db.ConfigDbPath)
-			if err4 != nil {
-				message += err4.Error()
-			}
-			defer db.CloseConfigDb()
-			err5 := db.SetFusionPara(config.FusionParaSetting)
+			err5 := db.OpenConfigDb(db.ConfigDbPath)
 			if err5 != nil {
 				message += err5.Error()
+			}
+			defer db.CloseConfigDb()
+			err6 := db.SetFusionPara(config.FusionParaSetting)
+			if err6 != nil {
+				message += err6.Error()
 			}
 
 			//	配置解析正确后，本地存储后，发送配置请求
@@ -266,17 +278,17 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 				State:   state,
 				Message: message,
 			}
-			ori, err6 := common.SetReqConfig(req)
-			if err6 != nil {
-				fmt.Println("err:", err6.Error())
+			ori, err7 := common.SetReqConfig(req)
+			if err7 != nil {
+				fmt.Println("err:", err7.Error())
 			} else {
 				fmt.Println("原文:", string(ori))
 				//原文加×
 				plain := append(ori, '*')
 
-				_, err7 := e.conn.Write(plain)
-				if err7 != nil {
-					fmt.Println("config req send fail:", err7.Error())
+				_, err8 := e.conn.Write(plain)
+				if err8 != nil {
+					fmt.Println("config req send fail:", err8.Error())
 				}
 			}
 		}
