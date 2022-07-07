@@ -36,6 +36,7 @@ var (
 	NotConnect = 1
 	Connect    = 2
 	Login      = 3
+	NeedClose  = 4
 )
 
 func (e *Eoc) Open() error {
@@ -319,7 +320,7 @@ func (e *Eoc) ThreadReceive() {
 			n, err := e.conn.Read(content)
 			if err != nil {
 				fmt.Println("eoc sock receive err:", err)
-				e.State = NotConnect
+				e.State = NeedClose
 			} else {
 				fmt.Println("eoc receive:", string(content[:n]))
 				//根据×分割命令
@@ -351,7 +352,7 @@ func (e *Eoc) ThreadHeartBeat() {
 				_, err2 := e.conn.Write(plain)
 				if err2 != nil {
 					fmt.Println("heartbeat send fail:", err2.Error())
-					e.State = NotConnect
+					e.State = NeedClose
 				}
 			}
 			time.Sleep(time.Duration(30) * time.Second) //30s sleep
@@ -380,7 +381,7 @@ func (e *Eoc) ThreadSendState() {
 				_, err2 := e.conn.Write(plain)
 				if err2 != nil {
 					fmt.Println("reqState send fail:", err2.Error())
-					e.State = NotConnect
+					e.State = NeedClose
 				}
 			}
 			time.Sleep(time.Duration(60) * time.Second) //60s sleep
