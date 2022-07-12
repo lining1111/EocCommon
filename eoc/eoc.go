@@ -23,6 +23,11 @@ eoc通信
 开启3个协程 接收 心跳发送 状态上传
 */
 
+type NetStateLocal struct {
+	Total   int //外网状态上传总次数
+	Success int //外网状态上传成功次数
+}
+
 type Eoc struct {
 	Ip    string //eoc服务器ip
 	Port  int    //eoc服务器端口号
@@ -30,6 +35,8 @@ type Eoc struct {
 	State int //eoc连接状态
 
 	ServerPemFilePath string //"./server.pem"
+
+	netStateLocal NetStateLocal
 }
 
 var (
@@ -64,6 +71,9 @@ func (e *Eoc) Open() error {
 		e.conn = conn
 		e.State = Connect
 		fmt.Println("eoc tcp open")
+
+		e.netStateLocal.Total = 0
+		e.netStateLocal.Success = 0
 	}
 
 	return nil
@@ -303,6 +313,20 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 		} else {
 			fmt.Printf("state rsp state:%d,message:%s", state.State, state.Message)
 		}
+	case common.RspNetState:
+		fmt.Println("eoc外网状态回复")
+		netState := common.DataRspNetState{}
+		err1 := json.Unmarshal([]byte(frame.Data), &netState)
+		if err1 != nil {
+			fmt.Println("json unmarshal err :", err1.Error())
+		} else {
+			if netState.State != 1 {
+				fmt.Println("发送外网状态回复失败，message:", netState.Message)
+			} else {
+				fmt.Println("发送外围状态成功")
+				e.netStateLocal.Success++
+			}
+		}
 
 	default:
 		fmt.Println("eoc 未知命令", frame.Code)
@@ -338,7 +362,6 @@ func (e *Eoc) ThreadReceive() {
 func (e *Eoc) ThreadHeartBeat() {
 	fmt.Println("eoc ThreadHeartBeat")
 	for true {
-
 		if e.State == Login {
 			//发送心跳
 			ori, err := common.SetHeartBeat()
@@ -389,10 +412,43 @@ func (e *Eoc) ThreadSendState() {
 	}
 }
 
+func (e *Eoc) ThreadSendNetState() {
+	fmt.Println("eoc ThreadSendNetState")
+	for true {
+		equipNumber, _ := GetEquipNumber()
+		if e.State == Login {
+			e.netStateLocal.Total++
+			//发送状态上传
+			netState := common.DataReqNetState{
+				Code:          common.ReqState,
+				Total:         e.netStateLocal.Total,
+				Success:       e.netStateLocal.Success,
+				MainBoardGuid: equipNumber,
+			}
+
+			ori, err := common.SetReqNetState(netState)
+			if err != nil {
+				fmt.Println("reqNetState err:", err.Error())
+			} else {
+				fmt.Println("原文:", string(ori))
+				//原文加×
+				plain := append(ori, '*')
+
+				_, err2 := e.conn.Write(plain)
+				if err2 != nil {
+					fmt.Println("reqState send fail:", err2.Error())
+					e.State = NeedClose
+				}
+			}
+			time.Sleep(time.Duration(300) * time.Second) //300s sleep
+		}
+	}
+}
+
 func (e *Eoc) StartLocalBusiness() {
 	go e.ThreadReceive()
 	go e.ThreadHeartBeat()
-	go e.ThreadSendState()
+	//go e.ThreadSendState()
 }
 
 func (e *Eoc) BusinessKeep() {

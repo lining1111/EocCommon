@@ -36,6 +36,12 @@ var (
 
 	ReqState = "MCCS103" //状态上传请求
 	RspState = "MCCR103" //状态上传回复
+
+	ReqGetConfig = "MCCS104" //获取配置请求
+	RspGetConfig = "MCCR104" //获取配置回复
+
+	ReqNetState = "MCCS105" //外网状态上传请求
+	RspNetState = "MCCR105" //外网状态上传回复
 )
 
 type DataReqHeartBeat struct {
@@ -91,7 +97,7 @@ func SetReqLogin(data DataReqLogin) ([]byte, error) {
 		req := FrameReq{
 			Guid:    uuid.New().String(),
 			Version: Version,
-			Code:    ReqHeartBeat,
+			Code:    ReqLogin,
 			Data:    string(dataStr)}
 		reqStr, err1 := json.Marshal(req)
 		if err1 != nil {
@@ -124,7 +130,7 @@ func SetRspLogin(data DataRspLogin) ([]byte, error) {
 		req := FrameReq{
 			Guid:    uuid.New().String(),
 			Version: Version,
-			Code:    ReqHeartBeat,
+			Code:    RspLogin,
 			Data:    string(dataStr)}
 		reqStr, err1 := json.Marshal(req)
 		if err1 != nil {
@@ -237,7 +243,7 @@ func SetRspConfig(data DataRspConfig) ([]byte, error) {
 		req := FrameReq{
 			Guid:    uuid.New().String(),
 			Version: Version,
-			Code:    ReqHeartBeat,
+			Code:    RsqConfig,
 			Data:    string(dataStr)}
 		reqStr, err1 := json.Marshal(req)
 		if err1 != nil {
@@ -270,7 +276,7 @@ func SetReqConfig(data DataReqConfig) ([]byte, error) {
 		req := FrameReq{
 			Guid:    uuid.New().String(),
 			Version: Version,
-			Code:    ReqHeartBeat,
+			Code:    ReqConfig,
 			Data:    string(dataStr)}
 		reqStr, err1 := json.Marshal(req)
 		if err1 != nil {
@@ -335,7 +341,7 @@ func SetRspState(data DataRspState) ([]byte, error) {
 		req := FrameReq{
 			Guid:    uuid.New().String(),
 			Version: Version,
-			Code:    ReqHeartBeat,
+			Code:    RspState,
 			Data:    string(dataStr)}
 		reqStr, err1 := json.Marshal(req)
 		if err1 != nil {
@@ -348,6 +354,140 @@ func SetRspState(data DataRspState) ([]byte, error) {
 
 func GetRspState(data []byte) (DataRspState, error) {
 	rsp := DataRspState{
+		Code: ""}
+	err := json.Unmarshal(data, &rsp)
+	return rsp, err
+}
+
+// DataRspGetConfig 发送主动获取配置后的回复
+type DataRspGetConfig struct {
+	Code              string             `json:"code"`
+	DataVersion       string             `json:"dataVersion"`
+	IntersectionInfo  IntersectionEntity `json:"intersectionInfo"`
+	Index             int                `json:"index"`
+	BaseSetting       BaseSettingEntity  `json:"baseSetting"`
+	FusionParaSetting FusionParaSetting  `json:"fusionParaSetting"`
+	AssociatedEquips  []AssociatedEquip  `json:"associatedEquips"`
+}
+
+func SetRspGetConfig(data DataRspGetConfig) ([]byte, error) {
+	dataStr, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	} else {
+		req := FrameReq{
+			Guid:    uuid.New().String(),
+			Version: Version,
+			Code:    RspGetConfig,
+			Data:    string(dataStr)}
+		reqStr, err1 := json.Marshal(req)
+		if err1 != nil {
+			return nil, err1
+		} else {
+			return reqStr, nil
+		}
+	}
+}
+
+func GetRspGetConfig(data []byte) (DataRspGetConfig, error) {
+	rsp := DataRspGetConfig{
+		Code: ""}
+	err := json.Unmarshal(data, &rsp)
+	return rsp, err
+}
+
+// DataReqGetConfig 主动发送获取配置
+type DataReqGetConfig struct {
+	Code          string `json:"code"`          //MCCS104
+	MainBoardGuid string `json:"mainBoardGuid"` //核心板guid
+}
+
+func SetReqGetConfig(data DataReqGetConfig) ([]byte, error) {
+	dataStr, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	} else {
+		req := FrameReq{
+			Guid:    uuid.New().String(),
+			Version: Version,
+			Code:    ReqGetConfig,
+			Data:    string(dataStr)}
+		reqStr, err1 := json.Marshal(req)
+		if err1 != nil {
+			return nil, err1
+		} else {
+			return reqStr, nil
+		}
+	}
+}
+
+func GetReqGetConfig(data []byte) (DataReqGetConfig, error) {
+	rsp := DataReqGetConfig{
+		Code: ""}
+	err := json.Unmarshal(data, &rsp)
+	return rsp, err
+}
+
+type DataReqNetState struct {
+	Code          string `json:"code"` //MCCS105
+	Total         int    `json:"total"`
+	Success       int    `json:"success"`
+	MainBoardGuid string `json:"mainBoardGuid"`
+}
+
+func SetReqNetState(data DataReqNetState) ([]byte, error) {
+	dataStr, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	} else {
+		req := FrameReq{
+			Guid:    uuid.New().String(),
+			Version: Version,
+			Code:    ReqNetState,
+			Data:    string(dataStr)}
+		reqStr, err1 := json.Marshal(req)
+		if err1 != nil {
+			return nil, err1
+		} else {
+			return reqStr, nil
+		}
+	}
+}
+
+func GetReqNetState(data []byte) (DataReqNetState, error) {
+	rsp := DataReqNetState{
+		Code: ""}
+	err := json.Unmarshal(data, &rsp)
+	return rsp, err
+}
+
+type DataRspNetState struct {
+	Code    string `json:"code"` //MCCR105
+	State   int    `json:"state"`
+	Message string `json:"message"`
+}
+
+func SetRspNetState(data DataRspNetState) ([]byte, error) {
+	dataStr, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	} else {
+		req := FrameReq{
+			Guid:    uuid.New().String(),
+			Version: Version,
+			Code:    RspNetState,
+			Data:    string(dataStr)}
+		reqStr, err1 := json.Marshal(req)
+		if err1 != nil {
+			return nil, err1
+		} else {
+			return reqStr, nil
+		}
+	}
+}
+
+func GetRspNetState(data []byte) (DataRspNetState, error) {
+	rsp := DataRspNetState{
 		Code: ""}
 	err := json.Unmarshal(data, &rsp)
 	return rsp, err
