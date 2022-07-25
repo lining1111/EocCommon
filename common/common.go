@@ -5,23 +5,23 @@ import (
 	"github.com/google/uuid"
 )
 
-const Version = "1.0.0"
+const Version = "V1.0.0"
 
 // FrameReq 请求消息结构体
 type FrameReq struct {
-	Guid    string `json:"guid"`
-	Version string `json:"version"`
-	Code    string `json:"code"`
-	Data    string `json:"data"`
+	Guid    string      `json:"guid"`
+	Version string      `json:"version"`
+	Code    string      `json:"code"`
+	Data    interface{} `json:"data"`
 }
 
 type FrameRsp struct {
-	Guid          string `json:"guid"`
-	Version       string `json:"version"`
-	Code          string `json:"code"`
-	State         int    `json:"state"`
-	ResultMessage string `json:"resultMessage"`
-	Data          string `json:"data"`
+	Guid          string      `json:"guid"`
+	Version       string      `json:"version"`
+	Code          string      `json:"code"`
+	State         int         `json:"state"`
+	ResultMessage string      `json:"resultMessage"`
+	Data          interface{} `json:"data"`
 }
 
 var (
@@ -54,28 +54,25 @@ type DataRspHeartBeat struct {
 
 func SetHeartBeat() ([]byte, error) {
 	data := DataReqHeartBeat{Code: ReqHeartBeat}
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    ReqHeartBeat,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    ReqHeartBeat,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetHeartBeat(data []byte) (DataRspHeartBeat, error) {
+func GetHeartBeat(data interface{}) (DataRspHeartBeat, error) {
 	rsp := DataRspHeartBeat{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &rsp)
 	return rsp, err
 }
 
@@ -90,28 +87,25 @@ type DataReqLogin struct {
 }
 
 func SetReqLogin(data DataReqLogin) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    ReqLogin,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    ReqLogin,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetReqLogin(data []byte) (DataReqLogin, error) {
+func GetReqLogin(data interface{}) (DataReqLogin, error) {
 	req := DataReqLogin{
 		Code: ""}
-	err := json.Unmarshal(data, &req)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &req)
 	return req, err
 }
 
@@ -123,28 +117,25 @@ type DataRspLogin struct {
 }
 
 func SetRspLogin(data DataRspLogin) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    RspLogin,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    RspLogin,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetRspLogin(data []byte) (DataRspLogin, error) {
+func GetRspLogin(data interface{}) (DataRspLogin, error) {
 	rsp := DataRspLogin{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &rsp)
 	return rsp, err
 }
 
@@ -195,7 +186,7 @@ type BaseSettingEntity struct {
 	PlatformTcpPort         int    `json:"platformTcpPort" db:"platformTcpPort"`
 	PlatformHttpPath        string `json:"platformHttpPath" db:"platformHttpPath"`
 	PlatformHttpPort        int    `json:"platformHttpPort" db:"platformHttpPort"`
-	SignalMachinePath       int    `json:"signalMachinePath" db:"signalMachinePath"`
+	SignalMachinePath       string `json:"signalMachinePath" db:"signalMachinePath"`
 	IsUseSignalMachine      int    `json:"isUseSignalMachine" db:"isUseSignalMachine"`
 	NtpServerPath           string `json:"ntpServerPath" db:"ntpServerPath"`
 	IllegalPlatformAddress  string `json:"illegalPlatformAddress" db:"illegalPlatformAddress"`
@@ -236,28 +227,25 @@ type DataRspConfig struct {
 }
 
 func SetRspConfig(data DataRspConfig) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    RsqConfig,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    RsqConfig,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetRspConfig(data []byte) (DataRspConfig, error) {
+func GetRspConfig(data interface{}) (DataRspConfig, error) {
 	rsp := DataRspConfig{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &rsp)
 	return rsp, err
 }
 
@@ -269,29 +257,26 @@ type DataReqConfig struct {
 }
 
 func SetReqConfig(data DataReqConfig) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    ReqConfig,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    ReqConfig,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetReqConfig(data []byte) (DataReqConfig, error) {
-	rsp := DataReqConfig{
+func GetReqConfig(data interface{}) (DataReqConfig, error) {
+	req := DataReqConfig{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
-	return rsp, err
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &req)
+	return req, err
 }
 
 // DataReqState MCCS103
@@ -301,29 +286,26 @@ type DataReqState struct {
 }
 
 func SetReqState(data DataReqState) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    ReqState,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    ReqState,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetReqState(data []byte) (DataReqState, error) {
-	rsp := DataReqState{
+func GetReqState(data interface{}) (DataReqState, error) {
+	req := DataReqState{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
-	return rsp, err
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &req)
+	return req, err
 }
 
 // DataRspState MCCR103
@@ -334,28 +316,25 @@ type DataRspState struct {
 }
 
 func SetRspState(data DataRspState) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    RspState,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    RspState,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetRspState(data []byte) (DataRspState, error) {
+func GetRspState(data interface{}) (DataRspState, error) {
 	rsp := DataRspState{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &rsp)
 	return rsp, err
 }
 
@@ -371,28 +350,25 @@ type DataRspGetConfig struct {
 }
 
 func SetRspGetConfig(data DataRspGetConfig) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    RspGetConfig,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    RspGetConfig,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetRspGetConfig(data []byte) (DataRspGetConfig, error) {
+func GetRspGetConfig(data interface{}) (DataRspGetConfig, error) {
 	rsp := DataRspGetConfig{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &rsp)
 	return rsp, err
 }
 
@@ -403,29 +379,26 @@ type DataReqGetConfig struct {
 }
 
 func SetReqGetConfig(data DataReqGetConfig) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    ReqGetConfig,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    ReqGetConfig,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetReqGetConfig(data []byte) (DataReqGetConfig, error) {
-	rsp := DataReqGetConfig{
+func GetReqGetConfig(data interface{}) (DataReqGetConfig, error) {
+	req := DataReqGetConfig{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
-	return rsp, err
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &req)
+	return req, err
 }
 
 type DataReqNetState struct {
@@ -436,28 +409,25 @@ type DataReqNetState struct {
 }
 
 func SetReqNetState(data DataReqNetState) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    ReqNetState,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    ReqNetState,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetReqNetState(data []byte) (DataReqNetState, error) {
+func GetReqNetState(data interface{}) (DataReqNetState, error) {
 	rsp := DataReqNetState{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &rsp)
 	return rsp, err
 }
 
@@ -468,27 +438,24 @@ type DataRspNetState struct {
 }
 
 func SetRspNetState(data DataRspNetState) ([]byte, error) {
-	dataStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	req := FrameReq{
+		Guid:    uuid.New().String(),
+		Version: Version,
+		Code:    RspNetState,
+		Data:    data}
+	reqStr, err1 := json.Marshal(req)
+	if err1 != nil {
+		return nil, err1
 	} else {
-		req := FrameReq{
-			Guid:    uuid.New().String(),
-			Version: Version,
-			Code:    RspNetState,
-			Data:    string(dataStr)}
-		reqStr, err1 := json.Marshal(req)
-		if err1 != nil {
-			return nil, err1
-		} else {
-			return reqStr, nil
-		}
+		return reqStr, nil
 	}
+
 }
 
-func GetRspNetState(data []byte) (DataRspNetState, error) {
+func GetRspNetState(data interface{}) (DataRspNetState, error) {
 	rsp := DataRspNetState{
 		Code: ""}
-	err := json.Unmarshal(data, &rsp)
+	arr, _ := json.Marshal(data)
+	err := json.Unmarshal(arr, &rsp)
 	return rsp, err
 }

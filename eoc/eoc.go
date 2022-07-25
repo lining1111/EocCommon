@@ -94,13 +94,13 @@ func GetEquipNumber() (string, error) {
 	dbSqlite, err := sqlx.Open("sqlite3", db.CLParkingDbPath)
 	if err != nil {
 		fmt.Println("sqlite3 open fail err", err)
-		return "0123456789", err
+		return "e1edb5d4-c773-4588-bcde-7ceb4ccdea54", err
 	}
 	defer dbSqlite.Close()
 	sqlCmd := "select UName from  CL_ParkingArea"
 	row := dbSqlite.QueryRowx(sqlCmd)
 	if row.Err() != nil {
-		return "0123456789", row.Err()
+		return "e1edb5d4-c773-4588-bcde-7ceb4ccdea54", row.Err()
 	}
 	var result string
 	err1 := row.Scan(&result)
@@ -136,7 +136,7 @@ func GetEquipIp() (string, error) {
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("cmd %s exec fail:%v\n", cmd.String(), err.Error())
-		return "", err
+		return "127.0.0.1", err
 	}
 	/*
 		"* get_double_net_info $ip_type $curip $curmask $curgateway $eth1_ip_type $eth1_curip $eth1_curmask $eth1_curgateway $curmaindns $curslavedns $curcloudip $curcloudport $curdevicenum $cur_city $cur_mac $protocol_version *"
@@ -186,7 +186,7 @@ func (e *Eoc) SendLogin() error {
 	var dataVersion string
 	err1 := db.GetDataVersionInLoginInfo(&dataVersion)
 	if err1 != nil {
-		dataVersion = ""
+		dataVersion = "V1.0.0"
 	}
 	login := common.DataReqLogin{
 		Code:        common.ReqLogin,
@@ -215,6 +215,10 @@ func (e *Eoc) SendLogin() error {
 }
 
 func (e *Eoc) ProcessRsp(rsp string) error {
+	if len(rsp) == 0 {
+		return nil
+	}
+
 	frame := common.FrameRsp{
 		Code: "",
 	}
@@ -228,10 +232,12 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 		fmt.Println("eoc 心跳")
 	case common.RspLogin:
 		fmt.Println("eoc 登录回复")
+		fmt.Printf("eoc 登录回复 data:%v\n", frame.Data)
 		login := common.DataRspLogin{}
-		err1 := json.Unmarshal([]byte(frame.Data), &login)
+		arr, _ := json.Marshal(frame.Data)
+		err1 := json.Unmarshal(arr, &login)
 		if err1 != nil {
-			fmt.Println("json unmarshal err ", err1.Error())
+			fmt.Println("json data unmarshal err ", err1.Error())
 		}
 		fmt.Printf("State:%d,Message:%s", login.State, login.Message)
 		if login.State == Connect {
@@ -241,12 +247,15 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 		}
 
 	case common.RsqConfig:
+	case common.RspGetConfig:
+
 		fmt.Println("eoc 配置回复")
-		fmt.Println("eoc config rsp:", frame.Data)
+		fmt.Printf("eoc config data:%v\n", frame.Data)
 		config := common.DataRspConfig{}
-		err1 := json.Unmarshal([]byte(frame.Data), &config)
+		arr, _ := json.Marshal(frame.Data)
+		err1 := json.Unmarshal(arr, &config)
 		if err1 != nil {
-			fmt.Println("json unmarshal err ", err1.Error())
+			fmt.Println("json data unmarshal err", err1.Error())
 		} else {
 			var state = 1
 			var message = ""
@@ -264,10 +273,13 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 				db.CloseConfigDb()
 				//2.将所需配置存到对应的数据库
 				//2.1 写入设备编码到数据库
-				err4 := SetEquipNumber(config.AssociatedEquips[0].EquipCode)
-				if err4 != nil {
-					message += err4.Error()
+				if len(config.AssociatedEquips) > 0 {
+					err4 := SetEquipNumber(config.AssociatedEquips[0].EquipCode)
+					if err4 != nil {
+						message += err4.Error()
+					}
 				}
+
 			}
 			//2.2 将融合参量写入数据库
 			err5 := db.OpenConfigDb(db.ConfigDbPath)
@@ -307,18 +319,20 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 	case common.RspState:
 		fmt.Println("eoc 状态回复")
 		state := common.DataRspState{}
-		err1 := json.Unmarshal([]byte(frame.Data), &state)
+		arr, _ := json.Marshal(frame.Data)
+		err1 := json.Unmarshal(arr, &state)
 		if err1 != nil {
-			fmt.Println("json unmarshal err:", err1.Error())
+			fmt.Println("json data unmarshal err:", err1.Error())
 		} else {
 			fmt.Printf("state rsp state:%d,message:%s", state.State, state.Message)
 		}
 	case common.RspNetState:
 		fmt.Println("eoc外网状态回复")
 		netState := common.DataRspNetState{}
-		err1 := json.Unmarshal([]byte(frame.Data), &netState)
+		arr, _ := json.Marshal(frame.Data)
+		err1 := json.Unmarshal(arr, &netState)
 		if err1 != nil {
-			fmt.Println("json unmarshal err :", err1.Error())
+			fmt.Println("json data unmarshal err", err1.Error())
 		} else {
 			if netState.State != 1 {
 				fmt.Println("发送外网状态回复失败，message:", netState.Message)
@@ -339,11 +353,11 @@ func (e *Eoc) ThreadReceive() {
 	fmt.Println("eoc ThreadReceive")
 	for true {
 		time.Sleep(time.Duration(1) * time.Second)
-		if e.State == Connect {
+		if e.State == Connect || e.State == Login {
 			content := make([]byte, 1024*1024*2)
 			n, err := e.conn.Read(content)
 			if err != nil {
-				fmt.Println("eoc sock receive err:", err)
+				fmt.Println("eoc sock receive err:", err.Error())
 				e.State = NeedClose
 			} else {
 				fmt.Println("eoc receive:", string(content[:n]))
@@ -420,7 +434,7 @@ func (e *Eoc) ThreadSendNetState() {
 			e.netStateLocal.Total++
 			//发送状态上传
 			netState := common.DataReqNetState{
-				Code:          common.ReqState,
+				Code:          common.ReqNetState,
 				Total:         e.netStateLocal.Total,
 				Success:       e.netStateLocal.Success,
 				MainBoardGuid: equipNumber,
@@ -436,7 +450,7 @@ func (e *Eoc) ThreadSendNetState() {
 
 				_, err2 := e.conn.Write(plain)
 				if err2 != nil {
-					fmt.Println("reqState send fail:", err2.Error())
+					fmt.Println("reqNetState send fail:", err2.Error())
 					e.State = NeedClose
 				}
 			}
@@ -445,16 +459,49 @@ func (e *Eoc) ThreadSendNetState() {
 	}
 }
 
+func (e *Eoc) ThreadSendGetConfig() {
+	fmt.Println("eoc ThreadSendGetConfig")
+	for true {
+		equipNumber, _ := GetEquipNumber()
+		if e.State == Login {
+			e.netStateLocal.Total++
+			//发送状态上传
+			getConfig := common.DataReqGetConfig{
+				Code:          common.ReqGetConfig,
+				MainBoardGuid: equipNumber,
+			}
+
+			ori, err := common.SetReqGetConfig(getConfig)
+			if err != nil {
+				fmt.Println("reqGetConfig err:", err.Error())
+			} else {
+				fmt.Println("原文:", string(ori))
+				//原文加×
+				plain := append(ori, '*')
+
+				_, err2 := e.conn.Write(plain)
+				if err2 != nil {
+					fmt.Println("reqGetConfig send fail:", err2.Error())
+					e.State = NeedClose
+				}
+			}
+			time.Sleep(time.Duration(30) * time.Second) //300s sleep
+		}
+	}
+}
+
 func (e *Eoc) StartLocalBusiness() {
 	go e.ThreadReceive()
 	go e.ThreadHeartBeat()
+	go e.ThreadSendNetState()
+	go e.ThreadSendGetConfig()
 	//go e.ThreadSendState()
 }
 
 func (e *Eoc) BusinessKeep() {
 	for true {
 		time.Sleep(time.Duration(60) * time.Second) //60s sleep
-		if e.State == NotConnect {
+		if e.State == NotConnect || e.State == NeedClose {
 			fmt.Println("进入eoc 重连")
 			e.Close()
 			time.Sleep(time.Duration(1) * time.Second) //1s sleep
