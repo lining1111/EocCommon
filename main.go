@@ -29,8 +29,8 @@ var e eoc.Eoc
 func main() {
 
 	var showVersion bool
-	var ServerIp string
-	var ServerPort int
+	var ServerIp string //10.100.32.128
+	var ServerPort int  //6526
 
 	var ServerPemFilePath string
 
@@ -40,8 +40,8 @@ func main() {
 
 	//读取传入的参数
 	flag.BoolVar(&showVersion, "v", false, "显示版本号")
-	flag.StringVar(&ServerIp, "ip", "10.100.32.128", "默认为10.100.32.128，从数据库读取ip，也可以自己设置")
-	flag.IntVar(&ServerPort, "port", 6526, "默认为6526,从数据库读取port，也可以自己设置")
+	flag.StringVar(&ServerIp, "ip", "", "默认为空，从数据库读取ip，也可以自己设置")
+	flag.IntVar(&ServerPort, "port", 0, "默认为空,从数据库读取port，也可以自己设置")
 	flag.StringVar(&ServerPemFilePath, "pem", "./eoc.pem", "默认为./eoc.pem，也可以自己设置")
 
 	flag.StringVar(&dbConfigPath, "dbConfigPath", "/home/nvidianx/bin/eocConfig.db", "默认为/home/nvidianx/bin/eocConfig.db，也可以自己设置")
@@ -65,7 +65,7 @@ func main() {
 	serverNet := db.ServerNet{}
 	if db.ServerNetDbIsOpen {
 
-		err1 := db.GetServerNet(serverNet)
+		err1 := db.GetServerNet(&serverNet)
 		if err1 != nil {
 			fmt.Println(err1)
 		}
@@ -73,9 +73,11 @@ func main() {
 
 	if ServerIp == "" {
 		ServerIp = serverNet.IP
+		fmt.Println("ip:", ServerIp)
 	}
 	if ServerPort == 0 {
 		ServerPort = serverNet.Port
+		fmt.Println("port:", ServerPort)
 	}
 
 	e.Ip = ServerIp

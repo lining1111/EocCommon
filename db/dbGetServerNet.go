@@ -30,7 +30,7 @@ func CloseServerNetDB() {
 	ServerNetDbIsOpen = false
 }
 
-func GetServerNet(serverNet ServerNet) error {
+func GetServerNet(serverNet *ServerNet) error {
 	sqlCmd := "select CloudServerPath from TB_ParkingLot where ID=1"
 	row := ServerNetDb.QueryRowx(sqlCmd)
 	if row.Err() != nil {

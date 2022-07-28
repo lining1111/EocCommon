@@ -47,7 +47,7 @@ func SetLoginInfo(info LoginInfo) error {
 		"equipType,"+
 		"softVersion,"+
 		"dataVersion)"+
-		"valeu(?,?,?,?,?)",
+		"values(?,?,?,?,?)",
 		info.EquipNumber,
 		info.EquipIp,
 		info.EquipType,
@@ -71,7 +71,7 @@ func GetLoginInfo(info *LoginInfo) error {
 }
 
 func SetDataVersionInLoginInfo(dataVersion string) error {
-	sqlCmd := "update loginInfo set dataversion = '%s'"
+	sqlCmd := "replace into loginInfo(id,dataVersion) values (1,'s')"
 	_, err := ConfigDb.Exec(sqlCmd, dataVersion)
 	return err
 }
@@ -101,11 +101,11 @@ func SetFusionPara(fusionPara common.FusionParaSetting) error {
 		"ymax,"+
 		"gatetx,"+
 		"gatety,"+
-		"gatex"+
-		"gatey"+
+		"gatex,"+
+		"gatey,"+
 		"time_flag,"+
 		"angle_value)"+
-		"valeu(?,?,?,?,?,?,?,?,?,?,?)",
+		"values(?,?,?,?,?,?,?,?,?,?,?)",
 		fusionPara.RepateX,
 		fusionPara.WidthX,
 		fusionPara.WidthY,

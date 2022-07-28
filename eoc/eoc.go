@@ -91,6 +91,8 @@ func (e *Eoc) Close() error {
 }
 
 func GetEquipNumber() (string, error) {
+	//return "e1edb5d4-c773-4588-bcde-7ceb4ccdea54", nil
+
 	dbSqlite, err := sqlx.Open("sqlite3", db.CLParkingDbPath)
 	if err != nil {
 		fmt.Println("sqlite3 open fail err", err)
@@ -125,6 +127,27 @@ func SetEquipNumber(equipNumber string) error {
 		return err1
 	}
 	return nil
+}
+
+func GetDataVersion() (string, error) {
+	dbSqlite, err := sqlx.Open("sqlite3", db.ConfigDbPath)
+	if err != nil {
+		fmt.Println("sqlite3 open fail err", err)
+		return "", err
+	}
+	defer dbSqlite.Close()
+	sqlCmd := "select dataVersion from  loginInfo"
+	row := dbSqlite.QueryRowx(sqlCmd)
+	if row.Err() != nil {
+		return "", row.Err()
+	}
+	var result string
+	err1 := row.Scan(&result)
+	if err1 != nil {
+		fmt.Printf(err1.Error())
+		return result, err1
+	}
+	return result, nil
 }
 
 func GetEquipIp() (string, error) {
@@ -247,11 +270,78 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 		}
 
 	case common.RsqConfig:
-	case common.RspGetConfig:
-
-		fmt.Println("eoc 配置回复")
+		fmt.Println("eoc 配置下发回复")
 		fmt.Printf("eoc config data:%v\n", frame.Data)
 		config := common.DataRspConfig{}
+		arr, _ := json.Marshal(frame.Data)
+		err1 := json.Unmarshal(arr, &config)
+		if err1 != nil {
+			fmt.Println("json data unmarshal err", err1.Error())
+		} else {
+			var state = 1
+			var message = ""
+			//将下发的配置进行本地存储
+			//1.先将dataVersion存到数据库
+			err2 := db.OpenConfigDb(db.ConfigDbPath)
+			if err2 != nil {
+				fmt.Println("打开数据库失败")
+				message += err2.Error()
+			} else {
+				err3 := db.SetDataVersionInLoginInfo(config.DataVersion)
+				if err3 != nil {
+					message += err3.Error()
+				}
+				db.CloseConfigDb()
+				//2.将所需配置存到对应的数据库
+				//2.1 写入设备编码到数据库
+				if len(config.AssociatedEquips) > 0 {
+					err4 := SetEquipNumber(config.AssociatedEquips[0].EquipCode)
+					if err4 != nil {
+						message += err4.Error()
+					}
+				}
+
+			}
+			//2.2 将融合参量写入数据库
+			err5 := db.OpenConfigDb(db.ConfigDbPath)
+			if err5 != nil {
+				message += err5.Error()
+			}
+			defer db.CloseConfigDb()
+			err6 := db.SetFusionPara(config.FusionParaSetting)
+			if err6 != nil {
+				message += err6.Error()
+			}
+
+			//	配置解析正确后，本地存储后，发送配置请求
+			if message == "" {
+				message = "配置成功"
+			}
+			req := common.DataReqConfig{
+				Code:    common.ReqConfig,
+				State:   state,
+				Message: message,
+			}
+			ori, err7 := common.SetReqConfig(req)
+			if err7 != nil {
+				fmt.Println("err:", err7.Error())
+			} else {
+				fmt.Println("原文:", string(ori))
+				//原文加×
+				plain := append(ori, '*')
+
+				_, err8 := e.conn.Write(plain)
+				if err8 != nil {
+					fmt.Println("config req send fail:", err8.Error())
+				}
+			}
+		}
+
+	case common.RspGetConfig:
+
+		fmt.Println("eoc 配置获取回复")
+		fmt.Printf("eoc config data:%v\n", frame.Data)
+		config := common.DataRspGetConfig{}
 		arr, _ := json.Marshal(frame.Data)
 		err1 := json.Unmarshal(arr, &config)
 		if err1 != nil {
@@ -337,7 +427,7 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 			if netState.State != 1 {
 				fmt.Println("发送外网状态回复失败，message:", netState.Message)
 			} else {
-				fmt.Println("发送外围状态成功")
+				fmt.Println("发送外网状态成功")
 				e.netStateLocal.Success++
 			}
 		}
@@ -365,8 +455,10 @@ func (e *Eoc) ThreadReceive() {
 				rsps := strings.Split(string(content[:n]), "*")
 				//逐条进行解析执行
 				for k, v := range rsps {
-					fmt.Println("解析第", k, "条命令:", v)
-					e.ProcessRsp(v)
+					if len(v) > 0 {
+						fmt.Println("解析第", k, "条命令:", v)
+						e.ProcessRsp(v)
+					}
 				}
 			}
 		}
@@ -461,32 +553,40 @@ func (e *Eoc) ThreadSendNetState() {
 
 func (e *Eoc) ThreadSendGetConfig() {
 	fmt.Println("eoc ThreadSendGetConfig")
+
+	//这是个一次性的线程
 	for true {
-		equipNumber, _ := GetEquipNumber()
-		if e.State == Login {
-			e.netStateLocal.Total++
-			//发送状态上传
-			getConfig := common.DataReqGetConfig{
-				Code:          common.ReqGetConfig,
-				MainBoardGuid: equipNumber,
-			}
+		dataVersion, _ := GetDataVersion()
+		if dataVersion != "" {
+			fmt.Println("已有dataVersion 不用获取了，线程退出")
+			break
+		} else {
+			equipNumber, _ := GetEquipNumber()
+			if e.State == Login {
+				e.netStateLocal.Total++
+				//发送状态上传
+				getConfig := common.DataReqGetConfig{
+					Code:          common.ReqGetConfig,
+					MainBoardGuid: equipNumber,
+				}
 
-			ori, err := common.SetReqGetConfig(getConfig)
-			if err != nil {
-				fmt.Println("reqGetConfig err:", err.Error())
-			} else {
-				fmt.Println("原文:", string(ori))
-				//原文加×
-				plain := append(ori, '*')
+				ori, err := common.SetReqGetConfig(getConfig)
+				if err != nil {
+					fmt.Println("reqGetConfig err:", err.Error())
+				} else {
+					fmt.Println("原文:", string(ori))
+					//原文加×
+					plain := append(ori, '*')
 
-				_, err2 := e.conn.Write(plain)
-				if err2 != nil {
-					fmt.Println("reqGetConfig send fail:", err2.Error())
-					e.State = NeedClose
+					_, err2 := e.conn.Write(plain)
+					if err2 != nil {
+						fmt.Println("reqGetConfig send fail:", err2.Error())
+						e.State = NeedClose
+					}
 				}
 			}
-			time.Sleep(time.Duration(30) * time.Second) //300s sleep
 		}
+		time.Sleep(time.Duration(300) * time.Second) //300s sleep
 	}
 }
 
