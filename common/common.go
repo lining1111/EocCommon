@@ -187,11 +187,12 @@ type BaseSettingEntity struct {
 	PlatformHttpPath        string `json:"platformHttpPath" db:"platformHttpPath"`
 	PlatformHttpPort        int    `json:"platformHttpPort" db:"platformHttpPort"`
 	SignalMachinePath       string `json:"signalMachinePath" db:"signalMachinePath"`
+	SignalMachinePort       int    `json:"signalMachinePort" db:"signalMachinePort"`
 	IsUseSignalMachine      int    `json:"isUseSignalMachine" db:"isUseSignalMachine"`
 	NtpServerPath           string `json:"ntpServerPath" db:"ntpServerPath"`
 	IllegalPlatformAddress  string `json:"illegalPlatformAddress" db:"illegalPlatformAddress"`
-	MainboardIp             string `json:"mainboardIp" db:"mainboardIp"`
-	MainboardPort           int    `json:"mainboardPort" db:"mainboardPort"`
+	FusionMainboardIp       string `json:"fusionMainboardIp" db:"fusionMainboardIp"`
+	FusionMainboardPort     int    `json:"fusionMainboardPort" db:"fusionMainboardPort"`
 }
 
 // FusionParaSetting 融合参数设置

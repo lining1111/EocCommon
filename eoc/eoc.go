@@ -312,6 +312,27 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 			if err6 != nil {
 				message += err6.Error()
 			}
+			//2.3 intersection
+			err7 := db.SetIntersectionEntity(config.IntersectionInfo)
+			if err7 != nil {
+				message += err7.Error()
+			}
+			//2.4 intersectionBaseSetting
+			err8 := db.SetIntersectionBaseSetting(config.IntersectionInfo.IntersectionBaseSetting)
+			if err8 != nil {
+				message += err8.Error()
+			}
+			//2.5 baseSetting
+			err9 := db.SetBaseSettingEntity(config.BaseSetting)
+			if err9 != nil {
+				message += err9.Error()
+			}
+
+			//2.6 associatedEquips
+			err10 := db.SetAssociatedEquips(config.AssociatedEquips)
+			if err10 != nil {
+				message += err10.Error()
+			}
 
 			//	配置解析正确后，本地存储后，发送配置请求
 			if message == "" {
@@ -322,17 +343,17 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 				State:   state,
 				Message: message,
 			}
-			ori, err7 := common.SetReqConfig(req)
-			if err7 != nil {
-				fmt.Println("err:", err7.Error())
+			ori, err11 := common.SetReqConfig(req)
+			if err11 != nil {
+				fmt.Println("err:", err11.Error())
 			} else {
 				fmt.Println("原文:", string(ori))
 				//原文加×
 				plain := append(ori, '*')
 
-				_, err8 := e.conn.Write(plain)
-				if err8 != nil {
-					fmt.Println("config req send fail:", err8.Error())
+				_, err12 := e.conn.Write(plain)
+				if err12 != nil {
+					fmt.Println("config req send fail:", err12.Error())
 				}
 			}
 		}
@@ -382,6 +403,28 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 				message += err6.Error()
 			}
 
+			//2.3 intersection
+			err7 := db.SetIntersectionEntity(config.IntersectionInfo)
+			if err7 != nil {
+				message += err7.Error()
+			}
+			//2.4 intersectionBaseSetting
+			err8 := db.SetIntersectionBaseSetting(config.IntersectionInfo.IntersectionBaseSetting)
+			if err8 != nil {
+				message += err8.Error()
+			}
+			//2.5 baseSetting
+			err9 := db.SetBaseSettingEntity(config.BaseSetting)
+			if err9 != nil {
+				message += err9.Error()
+			}
+
+			//2.6 associatedEquips
+			err10 := db.SetAssociatedEquips(config.AssociatedEquips)
+			if err10 != nil {
+				message += err10.Error()
+			}
+
 			//	配置解析正确后，本地存储后，发送配置请求
 			if message == "" {
 				message = "配置成功"
@@ -391,17 +434,17 @@ func (e *Eoc) ProcessRsp(rsp string) error {
 				State:   state,
 				Message: message,
 			}
-			ori, err7 := common.SetReqConfig(req)
-			if err7 != nil {
-				fmt.Println("err:", err7.Error())
+			ori, err11 := common.SetReqConfig(req)
+			if err11 != nil {
+				fmt.Println("err:", err11.Error())
 			} else {
 				fmt.Println("原文:", string(ori))
 				//原文加×
 				plain := append(ori, '*')
 
-				_, err8 := e.conn.Write(plain)
-				if err8 != nil {
-					fmt.Println("config req send fail:", err8.Error())
+				_, err12 := e.conn.Write(plain)
+				if err12 != nil {
+					fmt.Println("config req send fail:", err12.Error())
 				}
 			}
 		}
